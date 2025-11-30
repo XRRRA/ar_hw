@@ -1,0 +1,15 @@
+{
+  "name": "ar-exodus-2157",
+  "version": "1.0.0",
+  "description": "AR Experience - EXODUS 2157: Humanity's journey to escape The Blight",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
