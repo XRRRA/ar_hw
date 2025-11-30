@@ -2,260 +2,493 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>AR Interaction Lab (No Super-Hands)</title>
+  <title>EXODUS 2157 - AR Experience</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 
-  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-  <!-- AR.js for A-Frame (marker-based AR) -->
-  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar-nft.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
 
   <style>
-    body { margin:0; overflow:hidden; }
-    .hud {
-      position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
-      display: grid; grid-template-columns: repeat(5, auto); gap: 8px;
-      font: 600 14px/1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      z-index: 10; pointer-events: none;
+    :root {
+      --neon-cyan: #00f5ff;
+      --neon-magenta: #ff00ff;
+      --neon-purple: #b026ff;
+      --neon-green: #00ff88;
+      --neon-orange: #ff6600;
+      --dark-bg: #0a0a12;
     }
-    .hud.hidden { display: none; }
-    .hud button {
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Rajdhani', sans-serif;
+      background: var(--dark-bg);
+    }
+
+    .loader {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--dark-bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.5s, visibility 0.5s;
+    }
+    .loader.hidden { opacity: 0; visibility: hidden; }
+    .loader-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 20px var(--neon-cyan);
+      letter-spacing: 6px;
+    }
+    .loader-bar {
+      width: 150px;
+      height: 2px;
+      background: #222;
+      margin-top: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .loader-bar::after {
+      content: '';
+      position: absolute;
+      left: -50%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+      animation: loadingBar 1.5s infinite;
+    }
+    @keyframes loadingBar { 0% { left: -50%; } 100% { left: 100%; } }
+
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 70%, transparent 100%);
+      padding: 12px 15px 20px 15px;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 16px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 10px var(--neon-cyan);
+      letter-spacing: 3px;
+    }
+    .logo span { color: var(--neon-magenta); text-shadow: 0 0 10px var(--neon-magenta); }
+
+    .status {
+      font-size: 9px;
+      color: #555;
+      letter-spacing: 1px;
+      text-align: right;
+    }
+    .status .online { color: var(--neon-green); }
+
+    .progress-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .chapter-dot {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid #222;
+      border-radius: 6px;
+      transition: all 0.3s;
+    }
+    .chapter-dot.active {
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 10px rgba(0,245,255,0.3);
+    }
+    .chapter-dot.current {
+      border-color: var(--neon-orange);
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0%, 100% { box-shadow: 0 0 5px var(--neon-orange); } 50% { box-shadow: 0 0 12px var(--neon-orange); } }
+    .dot-icon { font-size: 16px; }
+    .dot-text {
+      font-size: 9px;
+      color: #555;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .chapter-dot.active .dot-text, .chapter-dot.current .dot-text { color: #aaa; }
+
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 35px;
+      background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      pointer-events: none;
+    }
+    .scan-hint {
+      font-size: 10px;
+      color: #666;
+      letter-spacing: 2px;
+    }
+    .scan-hint .target {
+      color: var(--neon-orange);
+      font-weight: 700;
+    }
+
+    .corner {
+      position: fixed;
+      width: 20px;
+      height: 20px;
+      border: 1px solid rgba(0,245,255,0.4);
+      z-index: 50;
+    }
+    .corner-tl { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+    .corner-tr { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+    .corner-bl { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+    .corner-br { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+
+    .chapter-panel {
+      position: fixed;
+      bottom: 50px;
+      left: 12px;
+      right: 12px;
+      background: linear-gradient(135deg, rgba(0,0,0,0.92) 0%, rgba(20,0,40,0.92) 100%);
+      border: 1px solid var(--neon-purple);
+      border-radius: 8px;
+      padding: 14px 16px;
+      z-index: 150;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s;
+      pointer-events: none;
+    }
+    .chapter-panel.show { opacity: 1; transform: translateY(0); }
+    .chapter-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .chapter-panel-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      color: var(--neon-purple);
+      text-shadow: 0 0 8px var(--neon-purple);
+      letter-spacing: 2px;
+    }
+    .chapter-panel-status {
+      font-size: 9px;
+      color: var(--neon-green);
+      letter-spacing: 1px;
+    }
+    .chapter-panel-story {
+      font-size: 13px;
+      color: #bbb;
+      line-height: 1.5;
+    }
+    .chapter-panel-story .neon {
+      color: var(--neon-cyan);
+      font-weight: 600;
+    }
+
+    .victory {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(ellipse at center, rgba(0,20,40,0.95) 0%, rgba(0,0,0,0.98) 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 300;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.5s;
+    }
+    .victory.show { opacity: 1; visibility: visible; }
+    .victory-badge {
+      width: 70px;
+      height: 70px;
+      border: 2px solid var(--neon-green);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 35px;
+      margin-bottom: 15px;
+      box-shadow: 0 0 25px var(--neon-green);
+    }
+    .victory-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--neon-green);
+      text-shadow: 0 0 15px var(--neon-green);
+      letter-spacing: 4px;
+      margin-bottom: 8px;
+    }
+    .victory-subtitle {
+      font-size: 11px;
+      color: #666;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+    }
+    .victory-story {
+      max-width: 280px;
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    .victory-story p {
+      font-size: 12px;
+      color: #888;
+      line-height: 1.5;
+      margin: 8px 0;
+    }
+    .victory-story .em { color: var(--neon-cyan); font-weight: 600; }
+    .victory-btn {
+      font-family: 'Orbitron', sans-serif;
+      padding: 12px 30px;
+      font-size: 10px;
+      letter-spacing: 2px;
+      background: transparent;
+      color: var(--neon-cyan);
+      border: 1px solid var(--neon-cyan);
+      cursor: pointer;
+      transition: all 0.3s;
       pointer-events: auto;
-      padding: 10px 12px; border: 0; border-radius: 10px;
-      background: rgba(255,255,255,.9);
+    }
+    .victory-btn:active {
+      background: var(--neon-cyan);
+      color: #000;
     }
   </style>
 
   <script>
-  // ---------- Utilities ----------
-  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-
-  // ---------- 1) Tap / doubletap / longpress ----------
-  AFRAME.registerComponent('tap-gestures', {
-    schema: {longMs:{default:500}},
-    init () {
-      let lastTap = 0, pressTimer = null, down = false;
-      this.el.addEventListener('mousedown', () => {
-        down = true;
-        const now = performance.now();
-        if (now - lastTap < 300) this.el.emit('doubletap');
-        lastTap = now;
-        pressTimer = setTimeout(() => { if (down) this.el.emit('longpress'); }, this.data.longMs);
-      });
-      this.el.addEventListener('mouseup', () => {
-        down = false;
-        clearTimeout(pressTimer);
-        this.el.emit('tap');
-      });
-      this.el.addEventListener('touchstart', e => e.preventDefault(), {passive:false});
-    }
-  });
-
-  // ---------- 2) Drag on a plane (marker plane) ----------
-  // Drag with mouse/touch by intersecting an invisible plane and moving the entity to that point.
-  AFRAME.registerComponent('drag-on-plane', {
-    schema: { plane: {type: 'selector'}, yOffset: {default: 0.25}, radius: {default: 0.6} },
-    init () {
-      this.dragging = false;
-      this.scene = this.el.sceneEl;
-      this.rayEl = document.querySelector('#ray'); // scene cursor ray
-      // listen on element
-      this.el.addEventListener('mousedown', () => this.dragging = true);
-      window.addEventListener('mouseup',   () => this.dragging = false);
-      window.addEventListener('touchend',  () => this.dragging = false);
-      // move
-      this.scene.addEventListener('mousemove', (e)=> this.updateDrag());
-      this.scene.addEventListener('touchmove', (e)=> this.updateDrag());
-    },
-    updateDrag () {
-      if (!this.dragging) return;
-      if (!this.data.plane) return;
-      const raycaster = this.rayEl.getObject3D('raycaster');
-      if (!raycaster) return;
-      const planeMesh = this.data.plane.getObject3D('mesh');
-      if (!planeMesh) return;
-
-      // Build a THREE.Plane from the plane entity (its world transform).
-      planeMesh.updateMatrixWorld();
-      const normal = new THREE.Vector3(0,1,0).applyQuaternion(planeMesh.getWorldQuaternion(new THREE.Quaternion()));
-      const point  = planeMesh.getWorldPosition(new THREE.Vector3());
-      const plane  = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, point);
-
-      const ray = raycaster.ray; // world-space ray from cursor
-      const hit = new THREE.Vector3();
-      if (ray.intersectPlane(plane, hit)) {
-        // constrain to radius on XZ around marker center
-        const local = this.el.parentEl.object3D.worldToLocal(hit.clone());
-        const r = Math.hypot(local.x, local.z);
-        const maxR = this.data.radius;
-        if (r > maxR){
-          const k = maxR / r;
-          local.x *= k; local.z *= k;
+    AFRAME.registerComponent('super-smooth', {
+      schema: {
+        position: {type: 'vec3'},
+        rotation: {type: 'vec3'}
+      },
+      init: function() {
+        this.smoothPos = new THREE.Vector3();
+        this.smoothRot = new THREE.Euler();
+        this.initialized = false;
+      },
+      tick: function() {
+        const obj = this.el.object3D;
+        if (!this.initialized) {
+          this.smoothPos.copy(obj.position);
+          this.smoothRot.copy(obj.rotation);
+          this.initialized = true;
+          return;
         }
-        this.el.setAttribute('position', `${local.x} ${this.data.yOffset} ${local.z}`);
+        const factor = 0.1;
+        this.smoothPos.lerp(obj.position, factor);
+        this.smoothRot.x += (obj.rotation.x - this.smoothRot.x) * factor;
+        this.smoothRot.y += (obj.rotation.y - this.smoothRot.y) * factor;
+        this.smoothRot.z += (obj.rotation.z - this.smoothRot.z) * factor;
+        obj.position.copy(this.smoothPos);
+        obj.rotation.copy(this.smoothRot);
       }
-    }
-  });
-
-  // ---------- 3) Pinch to scale ----------
-  AFRAME.registerComponent('pinch-scale', {
-    schema: {min:{default:0.2}, max:{default:3}},
-    init(){
-      this.active = false; this.startD = 0; this.startScale = null;
-      const onStart = (e) => {
-        if (e.touches && e.touches.length === 2){
-          this.active = true;
-          this.startD = this.dist(e.touches[0], e.touches[1]);
-          this.startScale = Object.assign({}, this.el.getAttribute('scale'));
-        }
-      };
-      const onMove = (e) => {
-        if (!this.active || !e.touches || e.touches.length < 2) return;
-        const d = this.dist(e.touches[0], e.touches[1]);
-        const mult = d / this.startD;
-        const ns = {
-          x: clamp(this.startScale.x * mult, this.data.min, this.data.max),
-          y: clamp(this.startScale.y * mult, this.data.min, this.data.max),
-          z: clamp(this.startScale.z * mult, this.data.min, this.data.max),
-        };
-        this.el.setAttribute('scale', ns);
-      };
-      const onEnd = () => this.active = false;
-      window.addEventListener('touchstart', onStart, {passive:false});
-      window.addEventListener('touchmove',  onMove,  {passive:false});
-      window.addEventListener('touchend',   onEnd);
-      window.addEventListener('touchcancel',onEnd);
-    },
-    dist(a,b){ const dx=a.clientX-b.clientX, dy=a.clientY-b.clientY; return Math.hypot(dx,dy); }
-  });
-
-  // ---------- 4) Twist to rotate (two-finger) ----------
-  AFRAME.registerComponent('twist-rotate', {
-    schema:{degPerRad:{default:57.2958}}, // 180/π
-    init(){
-      this.active = false; this.startA = 0; this.startRotY = 0;
-      const angle = (a,b)=> Math.atan2(b.clientY-a.clientY, b.clientX-a.clientX);
-      const onStart = (e)=>{
-        if (e.touches && e.touches.length === 2){
-          this.active = true;
-          this.startA = angle(e.touches[0], e.touches[1]);
-          this.startRotY = this.el.getAttribute('rotation').y;
-        }
-      };
-      const onMove = (e)=>{
-        if (!this.active || !e.touches || e.touches.length < 2) return;
-        const a = angle(e.touches[0], e.touches[1]);
-        const delta = (a - this.startA) * this.data.degPerRad;
-        const r = this.el.getAttribute('rotation');
-        this.el.setAttribute('rotation', {x:r.x, y:this.startRotY + delta, z:r.z});
-      };
-      const onEnd = ()=> this.active = false;
-      window.addEventListener('touchstart', onStart, {passive:false});
-      window.addEventListener('touchmove',  onMove,  {passive:false});
-      window.addEventListener('touchend',   onEnd);
-      window.addEventListener('touchcancel',onEnd);
-    }
-  });
-
-  // ---------- 5) Spin toggler + random color (hooked to taps) ----------
-  AFRAME.registerComponent('spin-toggle', {
-    schema:{speed:{default:4000}},
-    init(){
-      this.spinning = false;
-      this.el.addEventListener('toggle-spin', ()=> {
-        this.spinning = !this.spinning;
-        if (this.spinning) {
-          this.el.setAttribute('animation__spin',
-            `property: rotation; to: 0 360 0; loop: true; dur: ${this.data.speed}`);
-        } else {
-          this.el.removeAttribute('animation__spin');
-        }
-      });
-      this.el.addEventListener('random-color', ()=> {
-        const colors = ['#4CC3D9','#FFC65D','#7BC8A4','#EF2D5E','#FFFFFF'];
-        const c = colors[Math.floor(Math.random()*colors.length)];
-        this.el.setAttribute('material','color',c);
-      });
-    }
-  });
+    });
   </script>
 </head>
 <body>
-  <!-- HUD -->
-  <div class="hud" id="hud">
-    <button id="btn-rot-l">⟲</button>
-    <button id="btn-rot-r">⟳</button>
-    <button id="btn-scale--">−</button>
-    <button id="btn-scale-+">＋</button>
-    <button id="btn-color">🎨</button>
+  <div class="corner corner-tl"></div>
+  <div class="corner corner-tr"></div>
+  <div class="corner corner-bl"></div>
+  <div class="corner corner-br"></div>
+
+  <div class="loader" id="loader">
+    <div class="loader-title">EXODUS 2157</div>
+    <div class="loader-bar"></div>
+  </div>
+
+  <div class="top-bar">
+    <div class="top-row">
+      <div class="logo">EXODUS<span>2157</span></div>
+      <div class="status">SYSTEM <span class="online">ONLINE</span><br>AR TRACKING</div>
+    </div>
+    <div class="progress-row">
+      <div class="chapter-dot current" id="dot1">
+        <span class="dot-icon">🌍</span>
+        <span class="dot-text">Earth</span>
+      </div>
+      <div class="chapter-dot" id="dot2">
+        <span class="dot-icon">🚀</span>
+        <span class="dot-text">Exodus</span>
+      </div>
+      <div class="chapter-dot" id="dot3">
+        <span class="dot-icon">🌙</span>
+        <span class="dot-text">Moon</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="scan-hint">SCAN <span class="target" id="scan-target">EARTH</span></div>
+  </div>
+
+  <div class="chapter-panel" id="chapter-panel">
+    <div class="chapter-panel-header">
+      <div class="chapter-panel-title" id="panel-title">CHAPTER I: THE BLIGHT</div>
+      <div class="chapter-panel-status">UNLOCKED</div>
+    </div>
+    <div class="chapter-panel-story" id="panel-story">Story content...</div>
+  </div>
+
+  <div class="victory" id="victory">
+    <div class="victory-badge">🛡️</div>
+    <div class="victory-title">COMPLETE</div>
+    <div class="victory-subtitle">HUMANITY PRESERVED</div>
+    <div class="victory-story">
+      <p>The <span class="em">Exodus Initiative</span> succeeded.</p>
+      <p>12,000 survivors call <span class="em">Luna Colony</span> home.</p>
+    </div>
+    <button class="victory-btn" onclick="resetStory()">RESTART</button>
   </div>
 
   <a-scene
     embedded
-    renderer="colorManagement: true; physicallyCorrectLights: true"
-    xr-mode-ui="enabled: false"
-    arjs="sourceType: webcam; detectionMode: mono; debugUIEnabled: false">
+    renderer="colorManagement: true; physicallyCorrectLights: true; logarithmicDepthBuffer: true"
+    vr-mode-ui="enabled: false"
+    arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
+    id="scene">
 
-    <!-- Cursor ray for mouse/touch (A-Frame builds a raycaster object3D for us) -->
-    <a-entity id="ray" cursor="rayOrigin: mouse" raycaster="objects: .raytarget"></a-entity>
+    <a-entity light="type: ambient; intensity: 0.7"></a-entity>
+    <a-entity light="type: directional; intensity: 0.9; castShadow: true" position="2 4 2"></a-entity>
 
-    <!-- Lights -->
-    <a-entity light="type: ambient; intensity: 0.8"></a-entity>
-    <a-entity light="type: directional; intensity: 0.6" position="0 1 1"></a-entity>
+    <a-assets>
+      <img id="earth-texture" src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Solarsystemscope_texture_8k_earth_daymap.jpg/1024px-Solarsystemscope_texture_8k_earth_daymap.jpg" crossorigin="anonymous">
+    </a-assets>
 
-    <!-- Marker -->
-    <a-marker preset="hiro" id="marker">
+    <a-nft type="nft" url="./earth" smooth="true" smoothCount="50" smoothTolerance="0.08" smoothThreshold="15" id="marker-earth">
+      <a-entity position="0 0 0" super-smooth>
+        <a-sphere position="100 170 -330" radius="150" segments-width="64" segments-height="64" material="src: #earth-texture; roughness: 1; metalness: 0">
+          <a-animation attribute="rotation" from="0 0 0" to="0 360 0" dur="20000" repeat="indefinite" easing="linear"></a-animation>
+        </a-sphere>
+      </a-entity>
+    </a-nft>
 
-      <!-- Invisible drag plane anchored to marker -->
-      <a-plane id="dragplane" class="raytarget"
-               position="0 0 0" rotation="-90 0 0" width="2" height="2"
-               material="color: #000; opacity: 0; transparent: true"></a-plane>
+    <a-nft type="nft" url="./rocket" smooth="true" smoothCount="50" smoothTolerance="0.08" smoothThreshold="15" id="marker-rocket">
+      <a-entity position="0 0 0" super-smooth>
+        <a-entity gltf-model="./rocket.glb" position="100 -240 130" scale="40 40 40" rotation="270 0 0"></a-entity>
+      </a-entity>
+    </a-nft>
 
-      <!-- Interactive object -->
-      <a-box id="cube" class="raytarget"
-             position="0 0.25 0" depth="0.5" height="0.5" width="0.5"
-             material="metalness:0.1; roughness:0.6; color:#4CC3D9"
-             tap-gestures spin-toggle
-             drag-on-plane="plane: #dragplane; yOffset: 0.25; radius: 0.6"
-             pinch-scale twist-rotate>
-      </a-box>
-
-      <!-- Marker center dot (optional) -->
-      <a-cylinder radius="0.01" height="0.001" color="#888"></a-cylinder>
-    </a-marker>
+    <a-nft type="nft" url="./moon" smooth="true" smoothCount="50" smoothTolerance="0.08" smoothThreshold="15" id="marker-moon">
+      <a-entity position="0 0 0" super-smooth>
+        <a-entity gltf-model="./moon.glb" position="50 -100 -300" scale="40 40 40" rotation="0 0 0">
+          <a-animation attribute="rotation" from="0 0 0" to="0 360 0" dur="30000" repeat="indefinite" easing="linear"></a-animation>
+        </a-entity>
+      </a-entity>
+    </a-nft>
 
     <a-entity camera></a-entity>
   </a-scene>
 
   <script>
-    const hud  = document.getElementById('hud');
-    const cube = document.getElementById('cube');
+    const storyData = {
+      chapters: [
+        {
+          title: "CHAPTER I: THE BLIGHT",
+          story: `The year is <span class="neon">2157</span>. A mysterious pathogen known as "The Blight" has consumed <span class="neon">78% of Earth's surface</span>. Crops wither, oceans turn toxic, and the sky burns crimson. In just 3 years, <span class="neon">7.2 billion souls</span> have been lost. The remaining survivors huddle in sealed domes, waiting for salvation.`,
+          target: "EARTH"
+        },
+        {
+          title: "CHAPTER II: THE EXODUS",
+          story: `Project <span class="neon">EXODUS</span> initiates. The last <span class="neon">12,000 survivors</span> board the massive Ark vessels - humanity's final hope. As fusion engines roar to life, the ships ascend through the poisoned atmosphere. Below, Earth grows smaller - a dying ember in the void. There is no looking back.`,
+          target: "ROCKET"
+        },
+        {
+          title: "CHAPTER III: NEW DAWN",
+          story: `After 72 hours of travel, <span class="neon">Luna Colony Alpha</span> emerges on the horizon. The crystalline domes shimmer with artificial atmosphere, a beacon of hope against the darkness of space. As the Ark vessels dock, a new chapter begins. Humanity has survived - and among the stars, we shall rebuild.`,
+          target: "MOON"
+        }
+      ]
+    };
 
-    // Buttons
-    document.getElementById('btn-rot-l').addEventListener('click', () => nudgeRot(-15));
-    document.getElementById('btn-rot-r').addEventListener('click', () => nudgeRot( 15));
-    function nudgeRot(delta){
-      const r = cube.getAttribute('rotation');
-      cube.setAttribute('rotation', {x:r.x, y:r.y + delta, z:r.z});
+    let progress = [false, false, false];
+
+    const loader = document.getElementById('loader');
+    const scanTarget = document.getElementById('scan-target');
+    const chapterPanel = document.getElementById('chapter-panel');
+    const panelTitle = document.getElementById('panel-title');
+    const panelStory = document.getElementById('panel-story');
+    const victory = document.getElementById('victory');
+    const dots = [document.getElementById('dot1'), document.getElementById('dot2'), document.getElementById('dot3')];
+
+    document.getElementById('scene').addEventListener('loaded', () => {
+      setTimeout(() => loader.classList.add('hidden'), 1500);
+    });
+
+    const markers = [
+      document.getElementById('marker-earth'),
+      document.getElementById('marker-rocket'),
+      document.getElementById('marker-moon')
+    ];
+
+    markers.forEach((marker, i) => {
+      if (marker) {
+        marker.addEventListener('markerFound', () => onMarkerFound(i));
+        marker.addEventListener('markerLost', () => chapterPanel.classList.remove('show'));
+      }
+    });
+
+    function onMarkerFound(i) {
+      const step = progress.filter(x => x).length;
+      panelTitle.textContent = storyData.chapters[i].title;
+      panelStory.innerHTML = storyData.chapters[i].story;
+      chapterPanel.classList.add('show');
+
+      if (i === step) {
+        progress[i] = true;
+        updateDots();
+        if (progress.every(x => x)) {
+          setTimeout(() => victory.classList.add('show'), 1500);
+        }
+      }
     }
 
-    document.getElementById('btn-scale--').addEventListener('click', () => nudgeScale(0.9));
-    document.getElementById('btn-scale-+').addEventListener('click', () => nudgeScale(1.1));
-    function nudgeScale(mult){
-      const s = cube.getAttribute('scale');
-      cube.setAttribute('scale', {
-        x: clamp(s.x * mult, 0.2, 3),
-        y: clamp(s.y * mult, 0.2, 3),
-        z: clamp(s.z * mult, 0.2, 3)
+    function updateDots() {
+      const step = progress.filter(x => x).length;
+      progress.forEach((done, i) => {
+        dots[i].classList.toggle('active', done);
+        dots[i].classList.toggle('current', i === step && step < 3);
       });
+      if (step < 3) scanTarget.textContent = storyData.chapters[step].target;
+      else scanTarget.textContent = 'COMPLETE';
     }
 
-    document.getElementById('btn-color').addEventListener('click', () => cube.emit('random-color'));
-
-    // Gesture hooks
-    cube.addEventListener('tap',       () => cube.emit('toggle-spin'));        // single tap: spin on/off
-    cube.addEventListener('doubletap', () => cube.emit('random-color'));       // double tap: recolor
-    cube.addEventListener('longpress', () => hud.classList.toggle('hidden'));  // long press: show/hide HUD
+    function resetStory() {
+      progress = [false, false, false];
+      victory.classList.remove('show');
+      dots.forEach((d, i) => { d.classList.remove('active'); d.classList.toggle('current', i === 0); });
+      scanTarget.textContent = 'EARTH';
+    }
   </script>
 </body>
 </html>
